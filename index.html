@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <script src="static/jszip.min.js"></script>
+</head>
+
+<body>
+  <header>
+    <h1>
+      Add cover image to AO3 ePubs
+    </h1>
+  </header>
+
+  <main>
+    <noscript>
+      You need to enable JavaScript to use this tool.
+    </noscript>
+
+    <p>
+      Upload your ePub file:
+    </p>
+
+    <form id="uploadForm">
+      <p>
+        <input
+          type="file"
+          id="epubFileInput"
+          name="filename"
+          accept="application/epub+zip"
+          required>
+        <button type="submit">
+          Add cover image
+        </button>
+      </p>
+    </form>
+
+    <script>
+      const uploadForm = document.querySelector("#uploadForm");
+
+      uploadForm
+        .addEventListener("submit", function(event) {
+          // Clicking the button shouldn't submit the form; we do all
+          // the processing in the browser.
+          event.preventDefault();
+
+          // Get the epub file from the file input.
+          const file = uploadForm.querySelector('input[type="file"]').files[0];
+          console.debug(`Got file ${file}`);
+        });
+    </script>
+
+    <p>
+      <!--
+        These repeated alphabets are here to help me judge line lengths
+        once I've selected fonts -- I typically aim for between 2½ to 3½
+        alphabets on a line.
+      -->
+      abcdefghijklm nopqrstuvwxyz
+      abcdefghijklm nopqrstuvwxyz
+      abcdefghijklm nopqrstuvwxyz
+      abcdefghijklm nopqrstuvwxyz
+      abcdefghijklm nopqrstuvwxyz
+      abcdefghijklm nopqrstuvwxyz
+    </p>
+  </main>
+
+  <footer>
+    <p>
+      This is information about my web page
+    </p>
+  </footer>
+</body>
+
+</html>
