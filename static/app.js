@@ -195,15 +195,19 @@ function createCoverImage(ficInfo) {
   // Add the author name.
   ctx.font = '65px Georgia';
   
-  if (ficInfo.length > 35) {
-    ctx.fillText(ficInfo.author.slice(0, 17), width / 2, height * 0.85);
-    ctx.fillText(ficInfo.author.slice(17, 35) + '…', width / 2, height * 0.85 + 80);
-  } else if (ficInfo.author.length > 15) {
-    ctx.fillText(ficInfo.author.slice(0, 17), width / 2, height * 0.85);
-    ctx.fillText(ficInfo.author.slice(17, 35), width / 2, height * 0.85 + 80);
-  } else {
-    ctx.fillText(ficInfo.author, width / 2, height * 0.85);
-  }
+  const { lines: authorLines, separator } = getAuthorLines({
+    ctx, authorName: ficInfo.author, maxWidth: width * 0.75
+  });
+  
+  drawLinesOfText({
+    ctx,
+    width,
+    lines: authorLines,
+    separator,
+    maxLines: 2,
+    lineStart: height * 0.85,
+    lineHeight: 77,
+  });
   
   // Add the title.
   //
@@ -214,25 +218,19 @@ function createCoverImage(ficInfo) {
   // to indicate it's been truncated.
   ctx.font = '95px Georgia';
   
-  var lines = getTitleLines({
-    ctx, title: ficInfo.title, maxWidth: width * 0.8,
+  const titleLines = getTitleLines({
+    ctx, title: ficInfo.title, maxWidth: width * 0.75,
   });
-    
-  if (lines.length > 5) {
-    lines = lines.slice(0, 5);
-    lines[4] = lines[4] + '…'
-  }
-    
-  const lineHeight = 100;
-  const titleStart = height * 0.2;
-    
-  for (i = 0; i < lines.length; i++) {
-    ctx.fillText(
-      lines[i],
-      width / 2,
-      titleStart + i * lineHeight
-    );
-  }
+  
+  drawLinesOfText({
+    ctx,
+    width,
+    lines: titleLines,
+    separator: " ",
+    maxLines: 5,
+    lineStart: height * 0.2,
+    lineHeight: 112,
+  });
   
   return canvas;
 }
@@ -267,7 +265,7 @@ function getLinesForWords({ ctx, words, maxWidth, separator }) {
     // Remember to add a line for anything not already tracked.
     lines.push(currentLine);
     
-    return lines;
+    return { lines, separator };
 }
 
 
@@ -276,9 +274,11 @@ function getLinesForWords({ ctx, words, maxWidth, separator }) {
  * Split a title into lines to fit into a <canvas> without wrapping.
  */
 function getTitleLines({ ctx, title, maxWidth }) {
-    return getLinesForWords({
-        ctx, words: title.split(" "), maxWidth, separator: " "
-    });
+  const { lines } = getLinesForWords({
+    ctx, words: title.split(" "), maxWidth, separator: " "
+  });
+    
+  return lines;
 }
 
 
@@ -292,54 +292,78 @@ function getTitleLines({ ctx, title, maxWidth }) {
  * We only have room for two lines of text in the author name, so
  * anything beyond that gets truncated.
  */
-function getAuthorLines(ctx, authorName, maxWidth) {
+function getAuthorLines({ ctx, authorName, maxWidth }) {
   
-    // If the author name includes any spaces, assume we have a list
-    // of space separated words we can use.
-    if (authorName.includes(' ')) {
-        return getLinesForWords({
-            ctx, words: authorName.split(" "), maxWidth, separator: " "
-        });
-    }
-    
-    // Another common convention is to use underscores, in which
-    // case we can split on that.
-    else if (authorName.includes('_')) {
-        return getLinesForWords({
-            ctx, words: authorName.split("_"), maxWidth, separator: "_"
-        });
-    }
-    
-    // Another common convention is to use intercaps, e.g. JaneSmith,
-    // so we can split on those words if we need to.
-    else if (/[A-Z]/.test(authorName)) {
-        return getLinesForWords({
-            ctx,
-            words: authorName.replace(/([A-Z])/g, ' $1').trim().split(/\s+/),
-            maxWidth,
-            separator: ""
-        });
-    }
-    
-    // Otherwise, we just break the string into individual characters
-    // and fit as many as we can onto each line.
-    else {
-        return getLinesForWords({
-            ctx,
-            words: [...authorName],
-            maxWidth,
-            separator: ""
-        });
-    }
+  // If the author name includes any spaces, assume we have a list
+  // of space separated words we can use.
+  if (authorName.includes(' ')) {
+    return getLinesForWords({
+      ctx, words: authorName.split(" "), maxWidth, separator: " "
+    });
+  }
+  
+  // Another common convention is to use underscores, in which
+  // case we can split on that.
+  else if (authorName.includes('_')) {
+    return getLinesForWords({
+      ctx, words: authorName.split("_"), maxWidth, separator: "_"
+    });
+  }
+  
+  // Another common convention is to use intercaps, e.g. JaneSmith,
+  // so we can split on those words if we need to.
+  else if (/[A-Z]/.test(authorName)) {
+    return getLinesForWords({
+      ctx,
+      words: authorName.replace(/([A-Z])/g, ' $1').trim().split(/\s+/),
+      maxWidth,
+      separator: ""
+    });
+  }
+  
+  // Otherwise, we just break the string into individual characters
+  // and fit as many as we can onto each line.
+  else {
+    return getLinesForWords({
+      ctx,
+      words: [...authorName],
+      maxWidth,
+      separator: ""
+    });
+  }
 }
 
 
 
-if (typeof module !== 'undefined') {
-  module.exports = {
-    chooseColour,
-    createCoverImage,
-    findContentOpfPath,
-    getFicInfo,
-  };
+
+/**
+ * Add lines of text to a canvas.
+ *
+ * The text will be drawn in the middle of the page.
+ */
+function drawLinesOfText({ ctx, width, lines, separator, maxLines, lineStart, lineHeight }) {
+  
+  // If there are more lines than we can fit, truncate to that length
+  // and add an ellipsis.
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines[maxLines - 1] += '…';
+  }
+  
+  console.log(lines);
+  
+  // Got through and add the lines of text we're drawing.  Depending
+  // on the separator, we may need to add a hyphen or similar to
+  // indicate line continuation.
+  for (lineno = 0; lineno < lines.length; lineno++) {
+    const thisLine = lines[lineno];
+    
+    const displayLine =
+      separator === " " ? thisLine
+        : separator === "_" ? thisLine + "_"
+        : lineno < lines.length - 1 ? thisLine + "-"
+        : thisLine;
+    
+    ctx.fillText(displayLine, width / 2, lineStart + lineno * lineHeight);
+  }
 }
