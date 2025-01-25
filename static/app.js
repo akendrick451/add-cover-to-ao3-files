@@ -168,6 +168,97 @@ function numToHex(n) {
 
 
 
+/**
+ * Create a PNG cover image for a book.
+ *
+ * Returns a <canvas> element for this cover.
+ */
+function createCoverImage(ficInfo) {
+  // I want something with a rough 2:3 ratio that's big enough
+  // for the text to look sharp, but we don't need anything huge.
+  const width = 600;
+  const height = 900;
+  
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("width", 600);
+  canvas.setAttribute("height", 900);
+  
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = chooseColour(ficInfo.fandom);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Set text style.  We know white will look okay because we
+  // chose a dark background.
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'center';
+  
+  // Add the author name.
+  ctx.font = '60px Georgia';
+  ctx.fillText(ficInfo.author, width / 2, height * 0.85);
+  
+  // Add the title.
+  //
+  // This may be split across multiple lines if it's long; we only
+  // show part of the title if it's long to keep the text readable.
+  //
+  // If there are too many lines, we truncate it and add ellipsis
+  // to indicate it's been truncated.
+  ctx.font = '80px Georgia';
+  
+  var lines = getLines(ctx, [ficInfo.title, ficInfo.author, ficInfo.fandom].join(" "), width * 0.85);
+    
+  if (lines.length > 6) {
+    lines = lines.slice(0, 5);
+    lines[4] += '…'
+  }
+    
+  const lineHeight = 95;
+  const titleMidpoint = height * 0.425 - (lineHeight / 2 * (lines.length - 1));
+    
+  for (i = 0; i < lines.length; i++) {
+    ctx.fillText(
+      lines[i],
+      width / 2,
+      titleMidpoint + i * lineHeight
+    );
+  }
+  
+  return canvas;
+}
+
+/**
+ * Split a piece of text into lines to fit into a <canvas> without
+ * wrapping.
+ * 
+ * This function comes from Stack Overflow user crazy2be:
+ * https://stackoverflow.com/a/16599668/1558022
+ */
+function getLines(ctx, text, maxWidth) {
+    var words = text.split(" ");
+    var lines = [];
+    var currentLine = words[0];
+
+    for (var i = 1; i < words.length; i++) {
+        var word = words[i];
+        var width = ctx.measureText(currentLine + " " + word).width;
+        if (width < maxWidth) {
+            currentLine += " " + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    }
+    lines.push(currentLine);
+    return lines;
+}
+
+
+
 if (typeof module !== 'undefined') {
-  module.exports = { chooseColour, findContentOpfPath, getFicInfo };
+  module.exports = {
+    chooseColour,
+    createCoverImage,
+    findContentOpfPath,
+    getFicInfo,
+  };
 }

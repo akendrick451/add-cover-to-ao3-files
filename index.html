@@ -71,7 +71,7 @@
 
           // Get the epub file from the file input.
           const file = uploadForm.querySelector('input[type="file"]').files[0];
-          console.debug(`Got file ${file}`);
+          console.debug(`Got file ${file.name}`);
 
           // Find the `content
           JSZip.loadAsync(file)
@@ -87,9 +87,52 @@
 
               // Read the `content.opf` file, and get the key information
               // about this fic.
-              const contentOpfContent = await zip.file(contentOpfPath).async('string');
-              const ficInfo = getFicInfo(contentOpfContent);
+              const contentOpf = await zip.file(contentOpfPath).async('string');
+              const ficInfo = getFicInfo(contentOpf);
               console.debug(`Got fic info: ${JSON.stringify(ficInfo)}`);
+
+              // Create a cover image for this book which shows the title
+              // and author on a solid colour background.
+              //
+              // Then add this cover image to the zip file.
+              const canvas = createCoverImage(ficInfo);
+
+              const blob = await new Promise(
+                resolve => canvas.toBlob(resolve, 'image/png')
+              );
+
+              zip.file('media/cover.png', blob, { base64: true });
+
+              // Now modify the `content.opf` file to insert this image
+              // as the cover, and replace the file in the zip.
+              //
+              // This sort of text-based replacement is utterly cheating,
+              // but it also works.
+              const updatedContentOpf =
+                contentOpf
+                  .replace(
+                    "</manifest>",
+                    '<item id="cover-image" properties="cover-image" href="media/cover.png" media-type="image/png"/></manifest>'
+                  )
+                  .replace(
+                    "</metadata>",
+                    '<meta name="cover" content="cover-image"/></metadata>'
+                  );
+
+              zip.remove(contentOpfPath);
+              zip.file(contentOpfPath, updatedContentOpf);
+
+              // Create a download link for this zip file, and make
+              // the generated cover the link.
+              const zipContent = await zip.generateAsync({ type: 'blob' });
+
+              const downloadLink = document.createElement('a');
+              downloadLink.href = URL.createObjectURL(zipContent);
+              downloadLink.download = file.name;
+              downloadLink.appendChild(canvas);
+
+              document.querySelector('main').appendChild(downloadLink);
+
 
               reportSuccess(`
                 <span style="color: ${chooseColour(ficInfo.fandom)}">
