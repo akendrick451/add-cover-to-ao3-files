@@ -1,4 +1,8 @@
-const { findContentOpfPath, getFicInfo } = require('../static/app.js')
+const {
+  chooseColour,
+  findContentOpfPath,
+  getFicInfo,
+} = require('../static/app.js')
 const JSZip = require('../static/jszip.min.js');
 
 const fs = require("fs");
@@ -120,4 +124,14 @@ QUnit.test('it finds the key info from a `content.opf file`', (assert) => {
         fandom: 'Operation Mincemeat: A New Musical - SpitLip',
       }
     );
+});
+
+
+
+
+
+QUnit.module('chooseColour');
+
+QUnit.test('it chooses hte colour in a reproducible way', (assert) => {
+  assert.equal(chooseColour('Operation Mincemeat: A New Musical - SpitLip'), '#800600');
 });

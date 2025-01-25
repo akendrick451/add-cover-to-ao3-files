@@ -91,7 +91,9 @@
               const ficInfo = getFicInfo(contentOpfContent);
               console.debug(`Got fic info: ${JSON.stringify(ficInfo)}`);
 
-              reportSuccess(`Found fic info: ${JSON.stringify(ficInfo)}`)
+              reportSuccess(`
+                <span style="color: ${chooseColour(ficInfo.fandom)}">
+                Found fic info: ${JSON.stringify(ficInfo)}`)
             })
             .catch(function(error) {
               reportError(`Unable to read ePub file: ${error}`);
