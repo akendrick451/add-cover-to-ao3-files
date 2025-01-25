@@ -193,8 +193,17 @@ function createCoverImage(ficInfo) {
   ctx.textAlign = 'center';
   
   // Add the author name.
-  ctx.font = '70px Georgia';
-  ctx.fillText(ficInfo.author, width / 2, height * 0.85);
+  ctx.font = '65px Georgia';
+  
+  if (ficInfo.length > 35) {
+    ctx.fillText(ficInfo.author.slice(0, 17), width / 2, height * 0.85);
+    ctx.fillText(ficInfo.author.slice(17, 35) + '…', width / 2, height * 0.85 + 80);
+  } else if (ficInfo.author.length > 15) {
+    ctx.fillText(ficInfo.author.slice(0, 17), width / 2, height * 0.85);
+    ctx.fillText(ficInfo.author.slice(17, 35), width / 2, height * 0.85 + 80);
+  } else {
+    ctx.fillText(ficInfo.author, width / 2, height * 0.85);
+  }
   
   // Add the title.
   //
@@ -205,11 +214,13 @@ function createCoverImage(ficInfo) {
   // to indicate it's been truncated.
   ctx.font = '95px Georgia';
   
-  var lines = getLines(ctx, ficInfo.title, width * 0.8);
+  var lines = getTitleLines({
+    ctx, title: ficInfo.title, maxWidth: width * 0.8,
+  });
     
-  if (lines.length > 6) {
+  if (lines.length > 5) {
     lines = lines.slice(0, 5);
-    lines[4] += '…'
+    lines[4] = lines[4] + '…'
   }
     
   const lineHeight = 100;
@@ -226,30 +237,100 @@ function createCoverImage(ficInfo) {
   return canvas;
 }
 
+
+
 /**
- * Split a piece of text into lines to fit into a <canvas> without
- * wrapping.
- * 
- * This function comes from Stack Overflow user crazy2be:
- * https://stackoverflow.com/a/16599668/1558022
+ * Given a list of words, work out how to fit them into lines on
+ * a <canvas> without exceeding the max width.
  */
-function getLines(ctx, text, maxWidth) {
-    var words = text.split(" ");
+function getLinesForWords({ ctx, words, maxWidth, separator }) {
     var lines = [];
     var currentLine = words[0];
-
+    
+    // Go through the words one-by-one.  If adding this word causes
+    // us to exceeed the width of the current line, create a new line
+    // and push the word down.
     for (var i = 1; i < words.length; i++) {
-        var word = words[i];
-        var width = ctx.measureText(currentLine + " " + word).width;
+        var thisWord = words[i]
+        var candidateLine = currentLine + separator + thisWord;
+      
+        var width = ctx.measureText(candidateLine).width;
+        
         if (width < maxWidth) {
-            currentLine += " " + word;
+            currentLine = candidateLine;
         } else {
             lines.push(currentLine);
-            currentLine = word;
+            currentLine = thisWord;
         }
     }
+    
+    // Remember to add a line for anything not already tracked.
     lines.push(currentLine);
+    
     return lines;
+}
+
+
+
+/**
+ * Split a title into lines to fit into a <canvas> without wrapping.
+ */
+function getTitleLines({ ctx, title, maxWidth }) {
+    return getLinesForWords({
+        ctx, words: title.split(" "), maxWidth, separator: " "
+    });
+}
+
+
+
+/**
+ * Split an author name into lines to fit into a <canvas>.
+ *
+ * We try to apply some intelligence when we need to break across lines,
+ * e.g. breaking on spaces or uppercase characters.
+ *
+ * We only have room for two lines of text in the author name, so
+ * anything beyond that gets truncated.
+ */
+function getAuthorLines(ctx, authorName, maxWidth) {
+  
+    // If the author name includes any spaces, assume we have a list
+    // of space separated words we can use.
+    if (authorName.includes(' ')) {
+        return getLinesForWords({
+            ctx, words: authorName.split(" "), maxWidth, separator: " "
+        });
+    }
+    
+    // Another common convention is to use underscores, in which
+    // case we can split on that.
+    else if (authorName.includes('_')) {
+        return getLinesForWords({
+            ctx, words: authorName.split("_"), maxWidth, separator: "_"
+        });
+    }
+    
+    // Another common convention is to use intercaps, e.g. JaneSmith,
+    // so we can split on those words if we need to.
+    else if (/[A-Z]/.test(authorName)) {
+        return getLinesForWords({
+            ctx,
+            words: authorName.replace(/([A-Z])/g, ' $1').trim().split(/\s+/),
+            maxWidth,
+            separator: ""
+        });
+    }
+    
+    // Otherwise, we just break the string into individual characters
+    // and fit as many as we can onto each line.
+    else {
+        return getLinesForWords({
+            ctx,
+            words: [...authorName],
+            maxWidth,
+            separator: ""
+        });
+    }
 }
 
 

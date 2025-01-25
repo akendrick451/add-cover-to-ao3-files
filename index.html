@@ -137,10 +137,13 @@
 
               document.querySelector('main').appendChild(downloadLink);
 
-
               reportSuccess(`
                 <span style="color: ${chooseColour(ficInfo.fandom)}">
                 Found fic info: ${JSON.stringify(ficInfo)}`)
+
+              // Remove the file from the form, so the user can select
+              // another fic to upload.
+              uploadForm.querySelector('input[type="file"]').value = null;
             })
             .catch(function(error) {
               reportError(`Unable to read ePub file: ${error}`);
