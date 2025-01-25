@@ -106,7 +106,7 @@ QUnit.module('getFicInfo', () => {
 
 
 QUnit.module('chooseColour', () => {
-  QUnit.test('it chooses hte colour in a reproducible way', (assert) => {
+  QUnit.test('it chooses the colour in a reproducible way', (assert) => {
     const fandom = 'Operation Mincemeat: A New Musical - SpitLip';
     assert.equal(chooseColour(fandom), '#800600');
   });
