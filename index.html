@@ -6,6 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
+  <script src="static/app.js"></script>
   <script src="static/jszip.min.js"></script>
 
   <style>
@@ -74,23 +75,23 @@
 
           // Find the `content
           JSZip.loadAsync(file)
-            .then(function(zip) {
-              // Find the `content.opf` file, which contains some
-              // XML metadata about this ePub.
-              document.querySelector('main').innerHTML += JSON.stringify(Object.keys(zip.files));
+            .then(async function(zip) {
+              // Find the path to the `content.opf` file, which contains
+              // some key metadata about this fic.
+              const contentOpfPath = findContentOpfPath(zip);
 
-              const contentOpfPath =
-                Object.keys(zip.files)
-                  .find(f =>
-                    f === 'content.opf' || f.endsWith('/content.opf')
-                  );
-
-              if (typeof contentOpfPath === 'undefined') {
+              if (contentOpfPath === null) {
                 reportError(`Unable to find content.opf in this ePub!`);
                 return;
               }
 
-              reportSuccess(`Found content.opf: ${contentOpfPath}`)
+              // Read the `content.opf` file, and get the key information
+              // about this fic.
+              const contentOpfContent = await zip.file(contentOpfPath).async('string');
+              const ficInfo = getFicInfo(contentOpfContent);
+              console.debug(`Got fic info: ${JSON.stringify(ficInfo)}`);
+
+              reportSuccess(`Found fic info: ${JSON.stringify(ficInfo)}`)
             })
             .catch(function(error) {
               reportError(`Unable to read ePub file: ${error}`);
