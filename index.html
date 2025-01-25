@@ -7,6 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <script src="static/jszip.min.js"></script>
+
+  <style>
+    #results {
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
@@ -42,6 +48,20 @@
     <script>
       const uploadForm = document.querySelector("#uploadForm");
 
+      function reportError(message) {
+        document.querySelector('#results').style.display = 'block';
+
+        document.querySelector('#results ul').innerHTML +=
+          `<li><strong>Something went wrong:</strong> ${message}</li>`;
+      }
+
+      function reportSuccess(message) {
+        document.querySelector('#results').style.display = 'block';
+
+        document.querySelector('#results ul').innerHTML +=
+          `<li><strong>Something worked:</strong> ${message}</li>`;
+      }
+
       uploadForm
         .addEventListener("submit", function(event) {
           // Clicking the button shouldn't submit the form; we do all
@@ -51,22 +71,39 @@
           // Get the epub file from the file input.
           const file = uploadForm.querySelector('input[type="file"]').files[0];
           console.debug(`Got file ${file}`);
+
+          // Find the `content
+          JSZip.loadAsync(file)
+            .then(function(zip) {
+              // Find the `content.opf` file, which contains some
+              // XML metadata about this ePub.
+              document.querySelector('main').innerHTML += JSON.stringify(Object.keys(zip.files));
+
+              const contentOpfPath =
+                Object.keys(zip.files)
+                  .find(f =>
+                    f === 'content.opf' || f.endsWith('/content.opf')
+                  );
+
+              if (typeof contentOpfPath === 'undefined') {
+                reportError(`Unable to find content.opf in this ePub!`);
+                return;
+              }
+
+              reportSuccess(`Found content.opf: ${contentOpfPath}`)
+            })
+            .catch(function(error) {
+              reportError(`Unable to read ePub file: ${error}`);
+            });
         });
     </script>
 
-    <p>
-      <!--
-        These repeated alphabets are here to help me judge line lengths
-        once I've selected fonts -- I typically aim for between 2½ to 3½
-        alphabets on a line.
-      -->
-      abcdefghijklm nopqrstuvwxyz
-      abcdefghijklm nopqrstuvwxyz
-      abcdefghijklm nopqrstuvwxyz
-      abcdefghijklm nopqrstuvwxyz
-      abcdefghijklm nopqrstuvwxyz
-      abcdefghijklm nopqrstuvwxyz
-    </p>
+    <div id="results">
+      <p>Results:</p>
+
+      <ul>
+      </ul>
+    </div>
   </main>
 
   <footer>

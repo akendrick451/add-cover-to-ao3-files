@@ -1,0 +1,11 @@
+{
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "eslint": "^9.19.0",
+    "globals": "^15.14.0",
+    "qunit": "^2.24.0"
+  },
+  "scripts": {
+    "test": "qunit"
+  }
+}
