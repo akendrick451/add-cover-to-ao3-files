@@ -193,7 +193,7 @@ function createCoverImage(ficInfo) {
   ctx.textAlign = 'center';
   
   // Add the author name.
-  ctx.font = '60px Georgia';
+  ctx.font = '70px Georgia';
   ctx.fillText(ficInfo.author, width / 2, height * 0.85);
   
   // Add the title.
@@ -203,23 +203,23 @@ function createCoverImage(ficInfo) {
   //
   // If there are too many lines, we truncate it and add ellipsis
   // to indicate it's been truncated.
-  ctx.font = '80px Georgia';
+  ctx.font = '95px Georgia';
   
-  var lines = getLines(ctx, [ficInfo.title, ficInfo.author, ficInfo.fandom].join(" "), width * 0.85);
+  var lines = getLines(ctx, ficInfo.title, width * 0.8);
     
   if (lines.length > 6) {
     lines = lines.slice(0, 5);
     lines[4] += '…'
   }
     
-  const lineHeight = 95;
-  const titleMidpoint = height * 0.425 - (lineHeight / 2 * (lines.length - 1));
+  const lineHeight = 100;
+  const titleStart = height * 0.2;
     
   for (i = 0; i < lines.length; i++) {
     ctx.fillText(
       lines[i],
       width / 2,
-      titleMidpoint + i * lineHeight
+      titleStart + i * lineHeight
     );
   }
   
