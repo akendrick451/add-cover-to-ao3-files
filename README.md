@@ -1,6 +1,6 @@
-# add-cover-to-ao3-epubs
+# Add cover images to ePubs from AO3
 
-This tool lets you upload an ePub file you’ve downloaded from AO3, and get a new ePub that has a colourful cover image.
+This tool lets you add a colourful cover image to an ePub file you’ve downloaded from AO3.
 This makes it easy to find your favourite fic if you’re scrolling a grid view.
 
 <img src="screenshot.png">

@@ -9,7 +9,7 @@
   <script src="static/app.js"></script>
   <script src="static/jszip.min.js"></script>
 
-  <title>Add cover images to AO3 ePubs</title>
+  <title>Add cover images to ePubs from AO3</title>
 
   <style>
     :root {
@@ -26,8 +26,6 @@
       flex-direction: column;
 
       font-family: sans-serif;
-
-      line-height: 1.3em;
     }
 
     main {
@@ -39,8 +37,8 @@
     }
 
     header > *, main, footer > * {
-      width: 100%;
-      max-width: var(--max-width);
+      width: var(--max-width);
+      max-width: calc(100% - 2 * var(--padding));
       margin:    0 auto;
 
       padding-top:    calc(var(--padding) + env(safe-area-inset-top));
@@ -129,7 +127,7 @@
 <body>
   <main>
     <h1>
-      Add cover images to AO3 ePubs
+      Add cover images to ePubs from AO3
       <span class="version">v1.0</span>
     </h1>
 
@@ -138,11 +136,12 @@
     </noscript>
 
     <p>
-      <strong>Upload an ePub file you’ve downloaded from AO3, and get a new ePub that has a colourful cover image.</strong>
+      <strong>Add colourful cover images to ePub files you download from AO3.</strong>
     </p>
 
     <p>
-      This makes it easy to find your favourite fic if you’re scrolling a grid view!
+      Upload a file, and this site will add a colourful cover page based on the title and author.
+      This makes it easy to pick out your favourite fic!
     </p>
 
     <form id="uploadForm">
@@ -364,8 +363,17 @@
       </dt>
       <dd>
         No!
-        Everything says on your phone/computer.
+        Everything stays on your phone/computer.
         I don’t see any of the ePubs you’re adding covers to.
+      </dd>
+
+      <dt>
+        How do you pick the colours?
+      </dt>
+      <dd>
+        The colours are chosen randomly, but they’ll be the same for all the fics in the same fandom.
+        For example, all your Star Wars stories will be read, while Star Trek is a navy blue.
+        This is to help you browse your stories by AO3 fandom.
       </dd>
 
       <dt>
