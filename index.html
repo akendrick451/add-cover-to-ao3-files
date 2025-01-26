@@ -10,30 +10,132 @@
   <script src="static/jszip.min.js"></script>
 
   <style>
+    :root {
+      --max-width: 42rem;
+      --padding:   1em;
+    }
+
+    body {
+      margin:  0;
+      padding: 0;
+
+      min-height:     100vh;
+      display:        flex;
+      flex-direction: column;
+
+      font-family: sans-serif;
+
+      line-height: 1.3em;
+    }
+
+    main {
+      flex: 1;
+    }
+
+    h1 {
+      margin-bottom: 0.75em;
+    }
+
+    header > *, main, footer > * {
+      width: 100%;
+      max-width: var(--max-width);
+      margin:    0 auto;
+
+      padding-top:    calc(var(--padding) + env(safe-area-inset-top));
+      padding-right:  calc(var(--padding) + env(safe-area-inset-right));
+      padding-bottom: calc(var(--padding) + env(safe-area-inset-bottom));
+      padding-left:   calc(var(--padding) + env(safe-area-inset-left));
+    }
+
+    footer {
+      background: #ddd;
+      padding-bottom: calc(1.5 * var(--padding) + env(safe-area-inset-bottom));
+      font-size: small;
+    }
+
+    footer p:first-child { margin-top:    0; }
+    footer p:last-child  { margin-bottom: 0; }
+
     #results {
-      display: none;
+      list-style-type: none;
+      margin:  0;
+      padding: 0;
+      overflow-x: scroll;
+      white-space: nowrap;
+    }
+
+    #results li {
+      display: inline-block;
+      margin-right: 1em;
     }
 
     canvas {
       width: 150px;
     }
+
+    input[type="file"], button {
+      font-size: 1em;
+    }
+
+    form {
+      background: #eee;
+      padding: var(--padding);
+      border-radius: 10px;
+    }
+
+    form p:first-child {
+      margin-top: 0;
+    }
+
+    h2 {
+      margin-top: 3em;
+    }
+
+    dl, p {
+      line-height: 1.5em;
+    }
+
+    dt {
+      font-weight: bold;
+    }
+
+    dt:not(:first-child) {
+      margin-top: var(--padding);
+    }
+
+    dd {
+      margin-left: calc(2 * var(--padding));
+    }
+
+    .version {
+      color: #999;
+      font-size: small;
+    }
+
+    .placeholder {
+      opacity: 0.4;
+      filter: grayscale(100%);
+    }
   </style>
 </head>
 
 <body>
-  <header>
+  <main>
     <h1>
       Add cover image to AO3 ePubs
+      <span class="version">v1.0</span>
     </h1>
-  </header>
 
-  <main>
     <noscript>
       You need to enable JavaScript to use this tool.
     </noscript>
 
     <p>
-      Upload your ePub file:
+      <strong>Upload an ePub file you’ve downloaded from AO3, and get a new ePub that has a colourful cover image.</strong>
+    </p>
+
+    <p>
+      This makes it easy to find your favourite fic if you’re scrolling a grid view!
     </p>
 
     <form id="uploadForm">
@@ -48,6 +150,10 @@
           Add cover image
         </button>
       </p>
+
+      <p id="instructions">&nbsp;</p>
+
+      <ul id="results"></ul>
     </form>
 
     <script>
@@ -128,6 +234,8 @@
 
               // Create a download link for this zip file, and make
               // the generated cover the link.
+              //
+              // Then add the link to the page, where the user can see it.
               const zipContent = await zip.generateAsync({ type: 'blob' });
 
               const downloadLink = document.createElement('a');
@@ -135,11 +243,19 @@
               downloadLink.download = file.name;
               downloadLink.appendChild(canvas);
 
-              document.querySelector('main').appendChild(downloadLink);
+              const listElement = document.createElement('li');
+              listElement.appendChild(downloadLink);
 
-              reportSuccess(`
-                <span style="color: ${chooseColour(ficInfo.fandom)}">
-                Found fic info: ${JSON.stringify(ficInfo)}`)
+              const resultsList = document.querySelector('ul#results');
+              resultsList.insertBefore(listElement, resultsList.firstChild);
+
+              // If there are no instructions on screen yet, add some.
+              document.querySelector('#instructions').innerText = 'Tap or click to download your new ePub:';
+
+              // We have a real example, so remove the placeholders.
+              document.querySelectorAll('.placeholder').forEach(
+                el => el.remove()
+              );
 
               // Remove the file from the form, so the user can select
               // another fic to upload.
@@ -149,21 +265,137 @@
               reportError(`Unable to read ePub file: ${error}`);
             });
         });
+
+        // When the window loads, add three randomly generated stories
+        // to give a sense of what the covers will look like.
+        window.addEventListener("DOMContentLoaded", function(event) {
+          const titles = [
+            "To All the Tropes I’ve Loved Before",
+            "5 Things That Weren’t, and 1 That Was",
+            "Yet Another Coffee Shop AU",
+            "The [Figure] of [Concept] and [Idea]",
+            "Canon, What Canon?",
+            "The First Rule of Fic Club",
+            "Sense and Shippability",
+            "Pride and Plot Bunnies",
+            "The Adventures of Huckleberry Fan",
+            "The Fandom of the Opera",
+            "Lord of the Files",
+            "The Kudos of Monte Cristo",
+
+
+            // "A Very Fictional Story",
+            //
+            //
+            // "Definitely Not A Disaster",
+            // "Rewrite the Stars",
+            // "Of Love, Lies, and Loyalty",
+            // "The Alternate Path"
+            //
+            // "In Which [Something Happens]",
+            //
+            // "A Series of Questionable Decisions",
+            // "Unexpected Plot Twist",
+            // "Plan B (And C, And D)",
+            //
+          ];
+
+          const authors = [
+            "Jane Placeholder",
+            "John Author",
+            "A. N. Other",
+            "Fictional McWriterson",
+            "Sample Wordsmith",
+            "Anne Onymous",
+            "Ann Thology",
+            "Namey McNameface",
+            "S. Ample",
+            "William T. Riter",
+            "Ian Flemingo",
+            "Faye N. Dom",
+            "Siri Ouswriter",
+            "Fan E. Fayre",
+          ];
+
+          const fandoms = ["1", "10", "100", "10000", "10000000", "10000000000", "1000000000000000", "100000000000000000", "10000000000000000000", "1000000000000000000000", "100000000000000000000000", "10000000000000000000000000"];
+
+          shuffle(titles);
+          shuffle(authors);
+          shuffle(fandoms);
+
+          for (i = 0; i < 4; i++) {
+            const canvas = createCoverImage({
+              title: titles[i],
+              author: authors[i],
+              fandom: fandoms[i]
+            });
+
+            const listElement = document.createElement('li');
+            listElement.classList.add("placeholder");
+            listElement.appendChild(canvas);
+
+            const resultsList = document.querySelector('ul#results');
+            resultsList.insertBefore(listElement, resultsList.firstChild);
+          }
+        });
+
     </script>
 
-    <div id="results">
-      <p>Results:</p>
+    <h2>FAQs</h2>
 
-      <ul>
-      </ul>
-    </div>
-  </main>
+    <dl>
+      <dt>
+        Who made this?
+      </dt>
+      <dd>
+        It’s made by <a href="https://alexwlchan.net/">alexwlchan</a>.
+        If you find it useful, maybe <a href="https://ko-fi.com/alexwlchan">buy me a coffee</a>?
+      </dd>
 
-  <footer>
+      <dt>
+        Can you see what fics I’m reading?
+      </dt>
+      <dd>
+        No!
+        Everything says on your phone/computer.
+        I don’t see any of the ePubs you’re adding covers to.
+      </dd>
+
+      <dt>
+        How does it work?
+      </dt>
+      <dd>
+        I’ve written a blog post [link tbd] that explains how it works.
+        You can also “View source” on this web page and see all the code, or <a href="https://github.com/alexwlchan/add-cover-to-ao3-files">look at the GitHub repository</a>.
+      </dd>
+
+      <dt>
+        I love this tool! How can I make sure it doesn’t go away?
+      </dt>
+      <dd>
+        You can <a href="https://ko-fi.com/alexwlchan">buy me a coffee</a> which will make me feel happy and keep running my websites, or you can download this web page and get a copy that will run on your computer.
+      </dd>
+
+      <dt>
+        Something is broken.
+        Can you fix it?
+      </dt>
+      <dd>
+        <a href="https://github.com/alexwlchan/add-cover-to-ao3-files/issues/new?template=Blank+issue">File an issue</a> in the GitHub repository, or <a href="mailto:alex@alexwlchan.net">send me an email</a>.
+      </dd>
+    </dl>
+
+    <h2>Acknowledgements</h2>
+
     <p>
-      This is information about my web page
+      This site uses the open source <a href="https://github.com/Stuk/jszip/tree/main">JSZip</a> library, which is written by Stuart Knightley, David Duponchel, Franz Buchinger, and António Afonso (plus other contributors).
+      Yay open source!
     </p>
-  </footer>
+
+    <p>
+      This tool relies on the Archive Of Our Own (AO3), which was created by the Organization of Transformative Works (OTW), but it’s not affiliated with or endorsed by either of them.
+    </p>
+  </main>
 </body>
 
 </html>

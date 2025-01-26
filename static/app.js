@@ -193,7 +193,7 @@ function createCoverImage(ficInfo) {
   ctx.textAlign = 'center';
   
   // Add the author name.
-  ctx.font = '65px Georgia';
+  ctx.font = '62px Georgia';
   
   const { lines: authorLines, separator } = getAuthorLines({
     ctx, authorName: ficInfo.author, maxWidth: width * 0.75
@@ -205,7 +205,7 @@ function createCoverImage(ficInfo) {
     lines: authorLines,
     separator,
     maxLines: 2,
-    lineStart: height * 0.85,
+    lineStart: height * 0.82,
     lineHeight: 77,
   });
   
@@ -216,7 +216,7 @@ function createCoverImage(ficInfo) {
   //
   // If there are too many lines, we truncate it and add ellipsis
   // to indicate it's been truncated.
-  ctx.font = '95px Georgia';
+  ctx.font = '88px Georgia';
   
   const titleLines = getTitleLines({
     ctx, title: ficInfo.title, maxWidth: width * 0.75,
@@ -228,7 +228,7 @@ function createCoverImage(ficInfo) {
     lines: titleLines,
     separator: " ",
     maxLines: 5,
-    lineStart: height * 0.2,
+    lineStart: height * 0.18,
     lineHeight: 112,
   });
   
@@ -365,5 +365,30 @@ function drawLinesOfText({ ctx, width, lines, separator, maxLines, lineStart, li
         : thisLine;
     
     ctx.fillText(displayLine, width / 2, lineStart + lineno * lineHeight);
+  }
+}
+
+
+
+/**
+ * Shuffle the elements of an array.
+ *
+ * This code is a Fisher–Yates (aka Knuth) Shuffle, taken from
+ * a Stack Overflow community wiki answer: 
+ * https://stackoverflow.com/a/2450976/1558022
+ */
+function shuffle(array) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
   }
 }
