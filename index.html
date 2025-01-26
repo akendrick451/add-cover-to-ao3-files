@@ -73,6 +73,14 @@
       width: 150px;
     }
 
+    input[type="file"] {
+      max-width: 100%;
+    }
+
+    button {
+      margin-top: 0.5em;
+    }
+
     input[type="file"], button {
       font-size: 1em;
     }
@@ -91,7 +99,7 @@
       margin-top: 3em;
     }
 
-    dl, p {
+    dl, p, #errors li {
       line-height: 1.5em;
     }
 
@@ -120,6 +128,16 @@
     noscript {
       color: red;
       font-weight: bold;
+    }
+
+    #instructions {
+      display: none;
+    }
+
+    #errors {
+      color: red;
+      display: none;
+      margin-bottom: 0;
     }
   </style>
 </head>
@@ -160,23 +178,18 @@
       <p id="instructions">&nbsp;</p>
 
       <ul id="results"></ul>
+
+      <ul id="errors"></ul>
     </form>
 
     <script>
       const uploadForm = document.querySelector("#uploadForm");
 
       function reportError(message) {
-        document.querySelector('#results').style.display = 'block';
+        document.querySelector('#errors').style.display = 'block';
 
-        document.querySelector('#results ul').innerHTML +=
+        document.querySelector('#errors').innerHTML +=
           `<li><strong>Something went wrong:</strong> ${message}</li>`;
-      }
-
-      function reportSuccess(message) {
-        document.querySelector('#results').style.display = 'block';
-
-        document.querySelector('#results ul').innerHTML +=
-          `<li><strong>Something worked:</strong> ${message}</li>`;
       }
 
       uploadForm
@@ -197,7 +210,7 @@
               const contentOpfPath = findContentOpfPath(zip);
 
               if (contentOpfPath === null) {
-                reportError(`Unable to find content.opf in this ePub!`);
+                reportError(`Unable to find content.opf in this ePub! Did this ePub come from AO3?`);
                 return;
               }
 
@@ -256,6 +269,7 @@
               resultsList.insertBefore(listElement, resultsList.firstChild);
 
               // If there are no instructions on screen yet, add some.
+              document.querySelector('#instructions').style.display = 'block';
               document.querySelector('#instructions').innerText = 'Tap or click to download your new ePub:';
 
               // We have a real example, so remove the placeholders.
@@ -392,11 +406,20 @@
       </dd>
 
       <dt>
+        I have a fic that doesn’t work.
+        Can you help?
+      </dt>
+      <dd>
+        Send me a copy of the file, or a link to the original fic, and the browser you were using when something broke.
+      </dd>
+
+      <dt>
         Something is broken.
         Can you fix it?
       </dt>
       <dd>
         <a href="https://github.com/alexwlchan/add-cover-to-ao3-files/issues/new?template=Blank+issue">File an issue</a> in the GitHub repository, or <a href="mailto:alex@alexwlchan.net">send me an email</a>.
+        It’s useful if you tell me what fic you were looking at, what didn’t work, and what browser you were using.
       </dd>
     </dl>
 
