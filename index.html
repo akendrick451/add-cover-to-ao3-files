@@ -9,6 +9,8 @@
   <script src="static/app.js"></script>
   <script src="static/jszip.min.js"></script>
 
+  <title>Add cover images to AO3 ePubs</title>
+
   <style>
     :root {
       --max-width: 42rem;
@@ -116,13 +118,18 @@
       opacity: 0.4;
       filter: grayscale(100%);
     }
+
+    noscript {
+      color: red;
+      font-weight: bold;
+    }
   </style>
 </head>
 
 <body>
   <main>
     <h1>
-      Add cover image to AO3 ePubs
+      Add cover images to AO3 ePubs
       <span class="version">v1.0</span>
     </h1>
 
