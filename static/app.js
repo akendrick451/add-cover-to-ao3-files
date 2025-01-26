@@ -8,76 +8,156 @@
  * This returns the path, or `null` if there's no such file in
  * the ePub.
  */
-function findContentOpfPath(zip) {
-  const path =
-    Object.keys(zip.files)
-      .find(f =>
-        f === 'content.opf' || f.endsWith('/content.opf')
-      );
+async function findContentOpfPath(zip) {
+  const parser = new DOMParser();
   
-  return path || null;
+  // First look for the mandatory file META-INF/container.xml,
+  // which contains a pointer to the `content.opf` file.
+  //
+  // The contents of this file will be XML of the form:
+  //
+  //    <?xml version="1.0"?>
+  //    <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  //       <rootfiles>
+  //          <rootfile full-path="content.opf" media-type="application/oebps-package+xml"/>
+  //          
+  //       </rootfiles>
+  //    </container>
+  //
+  // In general AO3 stories put the `content.opf` at the top level,
+  // but let's go ahead and find it properly.
+  const containerXmlDoc = parser.parseFromString(
+    await zip.file('META-INF/container.xml').async('string'),
+    "text/xml"
+  );
+  
+  const rootPath =
+    containerXmlDoc
+      .querySelector('rootfile')
+      .getAttribute('full-path');
+  
+  console.debug(`Detected root path of EPUB file: ${rootPath}`);
+  
+  return rootPath;
 }
 
 
 
+
 /**
- * Given the contents of the `content.opf` file, return certain key
- * information like the title, author, and fandom.
+ * Get key information about this fic from the unpacked EPUB file.
+ *
  */
-function getFicInfo(xml) {
+async function getKeyFicInfo(zip) {    
+  // Get the path to `content.opf`.
+  const rootPath = await findContentOpfPath(zip);
+  
+  // Now go ahead and get the contents of `content.opf`.
+  //
+  // This is the rough strucutre of the contents:
+  //
+  //    <?xml version='1.0' encoding='utf-8'?>
+  //    <package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="uuid_id">
+  //      <metadata xmlns:opf="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:calibre="http://calibre.kovidgoyal.net/2009/metadata">
+  //        <dc:title>A Stab Wars Story</dc:title>
+  //        <dc:creator opf:file-as="apricot" opf:role="aut">Apricot (Paradisi)</dc:creator>
+  //        …
+  //      </metadata>
+  //      <manifest>
+  //        <item id="html4" href="A_Stab_Wars_Story_split_000.xhtml" media-type="application/xhtml+xml"/>
+  //        …
+  //      </manifest>
+  //      <spine toc="ncx">
+  //        …
+  //      </spine>
+  //    </package>
+  //
+  // We want to get the title, creator, and href of that first HTML page.
   const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xml, "text/xml");
-  
-  const namespaceResolver = (prefix) =>
-    prefix === 'dc' ? 'http://purl.org/dc/elements/1.1/' : null;
-  
-  const STRING_TYPE = 2;  // XPathResult.STRING_TYPE
+  const containerOpfXmlDoc = parser.parseFromString(
+    await zip.file(rootPath).async('string'),
+    'text/xml'
+  );
   
   // The title of the fic will be in a <dc:title> node, for example:
   //
   //     <dc:title>Operation Cameo</dc:title>
   //
-  const title = xmlDoc.evaluate(
+  const namespaceResolver = (prefix) =>
+    prefix === 'dc' ? 'http://purl.org/dc/elements/1.1/' : null;
+  
+  const title = containerOpfXmlDoc.evaluate(
     './/dc:title',
-    xmlDoc,
+    containerOpfXmlDoc,
     namespaceResolver,
-    STRING_TYPE,
-    null
+    XPathResult.STRING_TYPE
   ).stringValue;
+  
+  console.debug(`Detected title of EPUB file: ${title}`);
   
   // The author of the fic will be in a <dc:author> node, for example:
   //
   //     <dc:creator …>alexwlchan</dc:creator>
   //
-  const author = xmlDoc.evaluate(
+  const author = containerOpfXmlDoc.evaluate(
     './/dc:creator',
-    xmlDoc,
+    containerOpfXmlDoc,
     namespaceResolver,
-    STRING_TYPE,
-    null
+    XPathResult.STRING_TYPE
   ).stringValue;
   
-  // The fandom is the *third* of the <dc:subject> nodes, for example:
+  console.debug(`Detected author of EPUB file: ${author}`);
+  
+  // The href of the first HTML file will be the first <item> node
+  // with an HTML media type, for example:
   //
-  //    <dc:subject>Fanworks</dc:subject>
-  //    <dc:subject>General Audiences</dc:subject>
-  //    <dc:subject>Operation Mincemeat: A New Musical - SpitLip</dc:subject>
+  //    <item
+  //      id="html4"
+  //      href="A_Stab_Wars_Story_split_000.xhtml" 
+  //      media-type="application/xhtml+xml"/>
   //
-  // The first subject is always "Fanworks", and it looks like the rating
-  // is always the second subject.
+  const firstHtmlPath =
+    containerOpfXmlDoc
+      .querySelector('item[media-type="application/xhtml+xml"]')
+      .getAttribute("href");
+  
+  console.debug(`Detected first HTML file in EPUB file: ${firstHtmlPath}`);
+  
+  // Now go ahead and read that file as HTML.  This contains the metadata
+  // we actually want.
+  const firstHtmlDoc = parser.parseFromString(
+    await zip.file(firstHtmlPath).async('string'),
+    'text/html'
+  );
+  
+  // Look for the contents of a <dl> which contains some metadata
+  // about this fic.
   //
-  // See comment in the AO3 codebase here:
-  // https://github.com/otwcode/otwarchive/blob/2362dd772452a71dda9c62409b935f275a0d131f/app/models/download_writer.rb#L162-L164
-  const fandom = xmlDoc.evaluate(
-    './/dc:subject[3]',
-    xmlDoc,
-    namespaceResolver,
-    STRING_TYPE,
-    null
-  ).stringValue;
+  // We're interested in the <dd> after "Fandom:"
+  //
+  //    <dl class="tags">
+  //          <dt class="calibre3">Rating:</dt>
+  //          <dd class="calibre4"><a href="http://archiveofourown.org/tags/General%20Audiences">General Audiences</a></dd>
+  //          <dt class="calibre3">Archive Warning:</dt>
+  //          <dd class="calibre4"><a href="http://archiveofourown.org/tags/No%20Archive%20Warnings%20Apply">No Archive Warnings Apply</a></dd>
+  //          <dt class="calibre3">Category:</dt>
+  //          <dd class="calibre4"><a href="http://archiveofourown.org/tags/Gen">Gen</a></dd>
+  //          <dt class="calibre3">Fandom:</dt>
+  //          <dd class="calibre4"><a href="http://archiveofourown.org/tags/Rogue%20One:%20A%20Star%20Wars%20Story%20(2016)">Rogue One: A Star Wars Story (2016)</a></dd>
+  //
+  const fandom =
+    Array.from(firstHtmlDoc.querySelectorAll('dt'))
+      .find(dt => dt.innerText === 'Fandom:')
+      .nextSibling
+      .nextSibling
+      .innerText;
+  
+  console.debug(`Detected fandom in first HTML file: ${fandom}`);
   
   return { title, author, fandom };
 }
+
+
 
 
 
@@ -91,17 +171,16 @@ function getFicInfo(xml) {
  *
  */
 function chooseColour(fandom) {
+
+  // Choose the first two words of the fandom title.  This is enough
+  // to distinguish e.g. "Star Wars" and "Star Trek", but also means
+  // we'll get similar titles for fandoms with the same prefix.
+  const fandomSlice = fandom.split(" ").slice(0, 2).join(" ").replace(/:$/, '');
   
-  // This is a simple hashing function which gets us a random-ish
-  // hue in the random 0–359.
-  let hash = 0;
-  for (let i = 0; i < fandom.length; i++) {
-    const char = fandom.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  
-  const hue = (Math.abs(hash) % 360) / 360;
+  const seed = cyrb128(fandomSlice);  
+  const getRand = sfc32(seed[0], seed[1], seed[2], seed[3]);
+
+  const hue = getRand();
   
   // The saturation/lightness values are chosen to get a dark-ish
   // shade that will look good with white text.
@@ -114,6 +193,46 @@ function chooseColour(fandom) {
   // Convert to a hex string.
   return `#${numToHex(red)}${numToHex(green)}${numToHex(blue)}`;
 }
+
+
+
+/**
+ * A seeded implementation of a random number generator in JavaScript.
+ *
+ * Written by Stack Overflow user bryc: 
+ * https://stackoverflow.com/a/47593316/1558022
+ */
+function cyrb128(str) {
+    let h1 = 1779033703, h2 = 3144134277,
+        h3 = 1013904242, h4 = 2773480762;
+    for (let i = 0, k; i < str.length; i++) {
+        k = str.charCodeAt(i);
+        h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+        h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+        h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+        h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    h1 ^= (h2 ^ h3 ^ h4), h2 ^= h1, h3 ^= h1, h4 ^= h1;
+    return [h1>>>0, h2>>>0, h3>>>0, h4>>>0];
+}
+
+function sfc32(a, b, c, d) {
+  return function() {
+    a |= 0; b |= 0; c |= 0; d |= 0;
+    let t = (a + b | 0) + d | 0;
+    d = d + 1 | 0;
+    a = b ^ b >>> 9;
+    b = c + (c << 3) | 0;
+    c = (c << 21 | c >>> 11);
+    c = c + t | 0;
+    return (t >>> 0) / 4294967296;
+  }
+}
+
 
 
 

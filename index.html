@@ -205,20 +205,8 @@
           // Find the `content
           JSZip.loadAsync(file)
             .then(async function(zip) {
-              // Find the path to the `content.opf` file, which contains
-              // some key metadata about this fic.
-              const contentOpfPath = findContentOpfPath(zip);
-
-              if (contentOpfPath === null) {
-                reportError(`Unable to find content.opf in this EPUB! Did this EPUB come from AO3?`);
-                return;
-              }
-
-              // Read the `content.opf` file, and get the key information
-              // about this fic.
-              const contentOpf = await zip.file(contentOpfPath).async('string');
-              const ficInfo = getFicInfo(contentOpf);
-              console.debug(`Got fic info: ${JSON.stringify(ficInfo)}`);
+              // Get the key information about this fic.
+              const ficInfo = await getKeyFicInfo(zip);
 
               // Create a cover image for this book which shows the title
               // and author on a solid colour background.
@@ -237,6 +225,9 @@
               //
               // This sort of text-based replacement is utterly cheating,
               // but it also works.
+              const contentOpfPath = await findContentOpfPath(zip)
+              const contentOpf = await zip.file(contentOpfPath).async('string');
+
               const updatedContentOpf =
                 contentOpf
                   .replace(
@@ -387,7 +378,7 @@
       </dt>
       <dd>
         The colours are chosen randomly, but they’ll be the same for all the fics in the same fandom.
-        For example, all your Star Wars stories will be red, while Star Trek is a navy blue.
+        For example, all your Star Wars stories will be green, while Star Trek is a navy blue.
         This is to help you browse your stories by AO3 fandom.
       </dd>
 
