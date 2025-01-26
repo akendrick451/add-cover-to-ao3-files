@@ -350,8 +350,6 @@ function drawLinesOfText({ ctx, width, lines, separator, maxLines, lineStart, li
     lines[maxLines - 1] += '…';
   }
   
-  console.log(lines);
-  
   // Got through and add the lines of text we're drawing.  Depending
   // on the separator, we may need to add a hyphen or similar to
   // indicate line continuation.
