@@ -9,7 +9,7 @@
   <script src="static/app.js"></script>
   <script src="static/jszip.min.js"></script>
 
-  <title>Add cover images to ePubs from AO3</title>
+  <title>Add cover images to EPUBs from AO3</title>
 
   <style>
     :root {
@@ -145,7 +145,7 @@
 <body>
   <main>
     <h1>
-      Add cover images to ePubs from AO3
+      Add cover images to EPUBs from AO3
       <span class="version">v1.0</span>
     </h1>
 
@@ -154,7 +154,7 @@
     </noscript>
 
     <p>
-      <strong>Add colourful cover images to ePub files you download from AO3.</strong>
+      <strong>Add colourful cover images to EPUB files you download from AO3.</strong>
     </p>
 
     <p>
@@ -210,7 +210,7 @@
               const contentOpfPath = findContentOpfPath(zip);
 
               if (contentOpfPath === null) {
-                reportError(`Unable to find content.opf in this ePub! Did this ePub come from AO3?`);
+                reportError(`Unable to find content.opf in this EPUB! Did this EPUB come from AO3?`);
                 return;
               }
 
@@ -270,7 +270,7 @@
 
               // If there are no instructions on screen yet, add some.
               document.querySelector('#instructions').style.display = 'block';
-              document.querySelector('#instructions').innerText = 'Tap or click to download your new ePub:';
+              document.querySelector('#instructions').innerText = 'Tap or click to download your new EPUB:';
 
               // We have a real example, so remove the placeholders.
               document.querySelectorAll('.placeholder').forEach(
@@ -282,7 +282,7 @@
               uploadForm.querySelector('input[type="file"]').value = null;
             })
             .catch(function(error) {
-              reportError(`Unable to read ePub file: ${error}`);
+              reportError(`Unable to read EPUB file: ${error}`);
             });
         });
 
@@ -378,7 +378,7 @@
       <dd>
         No!
         Everything stays on your phone/computer.
-        I don’t see any of the ePubs you’re adding covers to.
+        I don’t see any of the EPUBs you’re adding covers to.
       </dd>
 
       <dt>
