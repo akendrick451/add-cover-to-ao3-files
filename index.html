@@ -255,7 +255,10 @@
               // the generated cover the link.
               //
               // Then add the link to the page, where the user can see it.
-              const zipContent = await zip.generateAsync({ type: 'blob' });
+              const zipContent = await zip.generateAsync({
+                type: 'blob',
+                mimeType: 'application/epub+zip',
+              });
 
               const downloadLink = document.createElement('a');
               downloadLink.href = URL.createObjectURL(zipContent);
