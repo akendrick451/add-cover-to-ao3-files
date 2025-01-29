@@ -18,6 +18,5 @@ You need to use an HTTP server rather than opening the file because it needs to 
 
 ## Deployment
 
-Run the `build.py` script to create the version of the site for deployment.
-
-This inlines the two JavaScript files, so we get a single HTML file which contains the entire tool.
+Run the `deploy.py` script.
+This will compile the app into a single JavaScript file, then upload it to my web server.
