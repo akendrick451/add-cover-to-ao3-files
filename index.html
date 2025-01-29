@@ -7,7 +7,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <script src="static/app.js"></script>
-  <script src="static/jszip.min.js"></script>
 
   <title>Add cover images to EPUBs from AO3</title>
 
@@ -154,7 +153,7 @@
     </noscript>
 
     <p>
-      <strong>Add colourful cover images to EPUB files you download from AO3.</strong>
+      <strong>Add auto-generated cover images to EPUB files you download from AO3.</strong>
     </p>
 
     <p>
@@ -164,15 +163,14 @@
 
     <form id="uploadForm">
       <p>
+        Upload an EPUB to add a cover image:
         <input
           type="file"
           id="epubFileInput"
           name="filename"
           accept="application/epub+zip"
-          required>
-        <button type="submit">
-          Add cover image
-        </button>
+          required
+          onchange="createNewCoverImage()">
       </p>
 
       <p id="instructions">&nbsp;</p>
@@ -183,8 +181,6 @@
     </form>
 
     <script>
-      const uploadForm = document.querySelector("#uploadForm");
-
       function reportError(message) {
         document.querySelector('#errors').style.display = 'block';
 
@@ -192,165 +188,168 @@
           `<li><strong>Something went wrong:</strong> ${message}</li>`;
       }
 
-      uploadForm
-        .addEventListener("submit", function(event) {
-          // Clicking the button shouldn't submit the form; we do all
-          // the processing in the browser.
-          event.preventDefault();
+      function createNewCoverImage() {
+        const fileInput = document.querySelector('#epubFileInput');
 
-          // Get the epub file from the file input.
-          const file = uploadForm.querySelector('input[type="file"]').files[0];
-          console.debug(`Got file ${file.name}`);
+        // Get the epub file from the file input.
+        const file = fileInput.files[0];
+        console.debug(`Got file ${file.name}`);
 
-          // Find the `content
-          JSZip.loadAsync(file)
-            .then(async function(zip) {
-              // Get the key information about this fic.
-              const ficInfo = await getKeyFicInfo(zip);
+        // Find the `content
+        JSZip.loadAsync(file)
+          .then(async function(zip) {
+            // Get the key information about this fic.
+            const ficInfo = await getKeyFicInfo(zip);
 
-              // Create a cover image for this book which shows the title
-              // and author on a solid colour background.
-              //
-              // Then add this cover image to the zip file.
-              const canvas = createCoverImage(ficInfo);
+            // Create a cover image for this book which shows the title
+            // and author on a solid colour background.
+            //
+            // Then add this cover image to the zip file.
+            const canvas = createCoverImage(ficInfo);
 
-              const blob = await new Promise(
-                resolve => canvas.toBlob(resolve, 'image/png')
-              );
+            const blob = await new Promise(
+              resolve => canvas.toBlob(resolve, 'image/png')
+            );
 
-              zip.file('media/cover.png', blob, { base64: true });
+            zip.file('media/cover.png', blob, { base64: true });
 
-              // Now modify the `content.opf` file to insert this image
-              // as the cover, and replace the file in the zip.
-              //
-              // This sort of text-based replacement is utterly cheating,
-              // but it also works.
-              const contentOpfPath = await findContentOpfPath(zip)
-              const contentOpf = await zip.file(contentOpfPath).async('string');
+            // Now modify the `content.opf` file to insert this image
+            // as the cover, and replace the file in the zip.
+            //
+            // This sort of text-based replacement is utterly cheating,
+            // but it also works.
+            const contentOpfPath = await findContentOpfPath(zip)
+            const contentOpf = await zip.file(contentOpfPath).async('string');
 
-              const updatedContentOpf =
-                contentOpf
-                  .replace(
-                    "</manifest>",
-                    '<item id="cover-image" properties="cover-image" href="media/cover.png" media-type="image/png"/></manifest>'
-                  )
-                  .replace(
-                    "</metadata>",
-                    '<meta name="cover" content="cover-image"/></metadata>'
-                  );
+            const updatedContentOpf =
+              contentOpf
+                .replace(
+                  "</manifest>",
+                  '<item id="cover-image" properties="cover-image" href="media/cover.png" media-type="image/png"/></manifest>'
+                )
+                .replace(
+                  "</metadata>",
+                  '<meta name="cover" content="cover-image"/></metadata>'
+                );
 
-              zip.remove(contentOpfPath);
-              zip.file(contentOpfPath, updatedContentOpf);
+            zip.remove(contentOpfPath);
+            zip.file(contentOpfPath, updatedContentOpf);
 
-              // Create a download link for this zip file, and make
-              // the generated cover the link.
-              //
-              // Then add the link to the page, where the user can see it.
-              const zipContent = await zip.generateAsync({
-                type: 'blob',
-                mimeType: 'application/epub+zip',
-              });
-
-              const downloadLink = document.createElement('a');
-              downloadLink.href = URL.createObjectURL(zipContent);
-              downloadLink.download = file.name;
-              downloadLink.appendChild(canvas);
-
-              const listElement = document.createElement('li');
-              listElement.appendChild(downloadLink);
-
-              const resultsList = document.querySelector('ul#results');
-              resultsList.insertBefore(listElement, resultsList.firstChild);
-
-              // If there are no instructions on screen yet, add some.
-              document.querySelector('#instructions').style.display = 'block';
-              document.querySelector('#instructions').innerText = 'Tap or click to download your new EPUB:';
-
-              // We have a real example, so remove the placeholders.
-              document.querySelectorAll('.placeholder').forEach(
-                el => el.remove()
-              );
-
-              // Remove the file from the form, so the user can select
-              // another fic to upload.
-              uploadForm.querySelector('input[type="file"]').value = null;
-            })
-            .catch(function(error) {
-              reportError(`Unable to read EPUB file: ${error}`);
+            // Create a download link for this zip file, and make
+            // the generated cover the link.
+            //
+            // Then add the link to the page, where the user can see it.
+            const zipContent = await zip.generateAsync({
+              type: 'blob',
+              mimeType: 'application/epub+zip',
             });
-        });
 
-        // When the window loads, add three randomly generated stories
-        // to give a sense of what the covers will look like.
-        window.addEventListener("DOMContentLoaded", function(event) {
-          const titles = [
-            "5 Things That Weren’t, and 1 That Was",
-            "A Series of Questionable Decisions",
-            "Canon, What Canon?",
-            "Game of Tropes",
-            "Lord of the Files",
-            "Plan B (And C, And D)",
-            "Pride and Plot Bunnies",
-            "Sense and Shippability",
-            "Ship Happens",
-            "Spock and Awe",
-            "The Adventures of Huckleberry Fan",
-            "The Fandom of the Opera",
-            "The Fast and the Fluffiest",
-            "The First Rule of Fic Club",
-            "The Kudos of Monte Cristo",
-            "The Many Lives of Goncharov",
-            "The Taming of the Ship",
-            "The [Figure] of [Concept] and [Idea]",
-            "To All the Tropes I’ve Loved Before",
-            "Yet Another Coffee Shop AU",
-          ];
-
-          const authors = [
-            "Ann Thology",
-            "Anne Onymous",
-            "Arthur Canon Doyle",
-            "Arya Snark",
-            "Bucky Barnes and Noble",
-            "Diana Prints",
-            "Edgar Allan Woe",
-            "Fan E. Fayre",
-            "Faye N. Dom",
-            "Ian Flemingo",
-            "James T. Kink",
-            "Jane AUs-ten",
-            "Loki Laufeelson",
-            "Luke Skywriter",
-            "Jean-Luc Ficard",
-            "Mary Sue",
-            "Namey McNameface",
-            "Oscar WildlyOOC",
-            "S. Ample",
-            "William T. Riter",
-          ];
-
-          const fandoms = ["1", "10", "100", "10000", "10000000", "10000000000", "1000000000000000", "100000000000000000", "10000000000000000000", "1000000000000000000000", "100000000000000000000000", "10000000000000000000000000", "1", "10", "100", "10000", "10000000", "10000000000", "1000000000000000", "100000000000000000", "10000000000000000000", "1000000000000000000000", "100000000000000000000000", "10000000000000000000000000"];
-
-          shuffle(titles);
-          shuffle(authors);
-          shuffle(fandoms);
-
-          for (i = 0; i < 4; i++) {
-            const canvas = createCoverImage({
-              title: titles[i],
-              author: authors[i],
-              fandom: fandoms[i]
-            });
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(zipContent);
+            downloadLink.download = file.name;
+            downloadLink.appendChild(canvas);
 
             const listElement = document.createElement('li');
-            listElement.classList.add("placeholder");
-            listElement.appendChild(canvas);
+            listElement.appendChild(downloadLink);
 
             const resultsList = document.querySelector('ul#results');
             resultsList.insertBefore(listElement, resultsList.firstChild);
-          }
-        });
 
+            // If there are no instructions on screen yet, add some.
+            document.querySelector('#instructions').style.display = 'block';
+            document.querySelector('#instructions').innerText = 'Tap or click to download your new EPUB:';
+
+            // We have a real example, so remove the placeholders.
+            document.querySelectorAll('.placeholder').forEach(
+              el => el.remove()
+            );
+
+            // Remove the file from the form, so the user can select
+            // another fic to upload.
+            uploadForm.querySelector('input[type="file"]').value = null;
+          })
+          .catch(function(error) {
+            reportError(`Unable to read EPUB file: ${error}`);
+          });
+      }
+
+      // When the window loads, add three randomly generated stories
+      // to give a sense of what the covers will look like.
+      window.addEventListener("DOMContentLoaded", function(event) {
+        const titles = [
+          "10 Things I Tagged About You",
+          "404: Canon Not Found",
+          "5 Things That Weren’t, and 1 That Was",
+          "A Series of Questionable Decisions",
+          "Beta’ing Bad",
+          "Canon, What Canon?",
+          "Game of Tropes",
+          "Gone With the WIP",
+          "Lord of the Files",
+          "Plan B (And C, And D)",
+          "Pride and Plot Bunnies",
+          "Sense and Shippability",
+          "Ship Happens",
+          "Spock and Awe",
+          "Tagged as ‘slow burn’ but less than 1k",
+          "The Adventures of Huckleberry Fan",
+          "The Fandom of the Opera",
+          "The Fast and the Fluffiest",
+          "The First Rule of Fic Club",
+          "The Kudos of Monte Cristo",
+          "The Taming of the Ship",
+          "The [Figure] of [Concept] and [Idea]",
+          "This Was Meant to Be a One-Shot",
+          "To All the Tropes I’ve Loved Before",
+          "Waiting for Goncharov",
+          "Yet Another Coffee Shop AU",
+        ];
+
+        const authors = [
+          "Amy Pond-ers",
+          "Ann Thology",
+          "Anne Onymous",
+          "Arthur Canon Doyle",
+          "Arya Snark",
+          "Bucky Barnes and Noble",
+          "Diana Prints",
+          "Edgar Allan Woe",
+          "Emily Ficinson",
+          "Faye N. Dom",
+          "Ian Flemingo",
+          "James T. Kink",
+          "Jane AUs-ten",
+          "Loki Laufeelson",
+          "Luke Skywriter",
+          "Jean-Luc Ficard",
+          "Mary Sue",
+          "Mr Milkshake",
+          "Oscar WildlyOOC",
+          "Pepper Plotts",
+          "William T. Riter",
+        ];
+
+        const fandoms = ["1", "10", "100", "10000", "10000000", "10000000000", "1000000000000000", "100000000000000000", "10000000000000000000", "1000000000000000000000", "100000000000000000000000", "10000000000000000000000000", "1", "10", "100", "10000", "10000000", "10000000000", "1000000000000000", "100000000000000000", "10000000000000000000", "1000000000000000000000", "100000000000000000000000", "10000000000000000000000000"];
+
+        shuffle(titles);
+        shuffle(authors);
+        shuffle(fandoms);
+
+        for (i = 0; i < 4; i++) {
+          const canvas = createCoverImage({
+            title: titles[i],
+            author: authors[i],
+            fandom: fandoms[i]
+          });
+
+          const listElement = document.createElement('li');
+          listElement.classList.add("placeholder");
+          listElement.appendChild(canvas);
+
+          const resultsList = document.querySelector('ul#results');
+          resultsList.insertBefore(listElement, resultsList.firstChild);
+        }
+      });
     </script>
 
     <h2>FAQs</h2>
@@ -435,6 +434,18 @@
       This tool relies on the Archive Of Our Own (AO3), which was created by the Organization of Transformative Works (OTW), but it’s not affiliated with or endorsed by either of them.
     </p>
   </main>
+
+  <!--
+    This is an inlined copy of https://stuk.github.io/jszip/,
+    used under the MIT license.
+
+    If you're reading the source code of this page, there's nothing
+    interesting beyond here.
+
+    If you want to understand how JSZip works, you'd be better off
+    reading the unminified source code.
+  -->
+  <script src="static/jszip.min.js"></script>
 </body>
 
 </html>

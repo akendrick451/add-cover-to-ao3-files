@@ -1,6 +1,6 @@
 # Add cover images to EPUBs from AO3
 
-This tool lets you add a colourful cover image to an EPUB file you’ve downloaded from AO3.
+This tool lets you add an auto-generated cover image to an EPUB file you’ve downloaded from AO3.
 This makes it easy to find your favourite fic if you’re scrolling a grid view.
 
 <img src="screenshot.png">
