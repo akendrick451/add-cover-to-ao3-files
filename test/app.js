@@ -30,18 +30,18 @@ QUnit.module('getKeyFicInfo', () => {
 QUnit.module('chooseColour', () => {
   QUnit.test('it chooses the colour in a reproducible way', (assert) => {
     const fandom = 'Operation Mincemeat: A New Musical - SpitLip';
-    assert.equal(chooseColour(fandom), '#00805d');
+    assert.equal(chooseColour(fandom), '#098262');
   });
   
   QUnit.test('it chooses different colours for Star Wars and Star Trek', (assert) => {
-    assert.equal(chooseColour('Star Wars'), '#580080');
-    assert.equal(chooseColour('Star Trek'), '#008051');
+    assert.equal(chooseColour('Star Wars'), '#740ca3');
+    assert.equal(chooseColour('Star Trek'), '#08724b');
   });
   
   QUnit.test('it creates the same colour for all Star Trek shows', (assert) => {
-    assert.equal(chooseColour('Star Trek'), '#008051');
-    assert.equal(chooseColour('Star Trek TOS'), '#008051');
-    assert.equal(chooseColour('Star Trek: Lower Decks'), '#008051');
+    assert.equal(chooseColour('Star Trek'), '#08724b');
+    assert.equal(chooseColour('Star Trek TOS'), '#08724b');
+    assert.equal(chooseColour('Star Trek: Lower Decks'), '#08724b');
   })
 });
 
