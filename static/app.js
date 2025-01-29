@@ -147,7 +147,7 @@ async function getKeyFicInfo(zip) {
   //
   const fandom =
     Array.from(firstHtmlDoc.querySelectorAll('dt'))
-      .find(dt => dt.innerText === 'Fandom:')
+      .find(dt => dt.innerText === 'Fandom:' || dt.innerText === 'Fandoms:')
       .nextSibling
       .nextSibling
       .innerText;

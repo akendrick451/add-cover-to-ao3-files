@@ -1,25 +1,46 @@
 QUnit.module('getKeyFicInfo', () => {
-  QUnit.test('it finds the key info from one of my fics', (assert) => {
+  function assertGetsTheRightKeyInfo(assert, path, expectedInfo) {
     const done = assert.async();
     
-    JSZipUtils.getBinaryContent('test/fixtures/Operation_Cameo.epub', function(err, data) {
+    JSZipUtils.getBinaryContent(path, function(err, data) {
       if (err) {
         throw err;
       }
 
       JSZip.loadAsync(data).then(async function (zip) {
         const ficInfo = await getKeyFicInfo(zip);
-        assert.deepEqual(
-          ficInfo,
-          {
-            title: 'Operation Cameo',
-            author: 'alexwlchan',
-            fandom: 'Operation Mincemeat: A New Musical - SpitLip',
-          }
-        );
+        assert.deepEqual(ficInfo, expectedInfo);
         done();
       });
     });
+  }
+  
+  // This EPUB file was downloaded from one of my fics,
+  // retrieved 26 January 2025
+  QUnit.test('it finds the key info from one of my fics', (assert) => {
+    assertGetsTheRightKeyInfo(
+      assert,
+      'test/fixtures/Operation_Cameo.epub',
+      {
+        title: 'Operation Cameo',
+        author: 'alexwlchan',
+        fandom: 'Operation Mincemeat: A New Musical - SpitLip',
+      }
+    );
+  });
+  
+  // This EPUB file was downloaded from David MacIver's fic "Stargate Physics",
+  // retrieved 26 January 2025
+  QUnit.test('it finds the fandom if there are multiple fandoms', (assert) => {
+    assertGetsTheRightKeyInfo(
+      assert,
+      'test/fixtures/Stargate_Physics_101.epub',
+      {
+        title: 'Stargate Physics 101',
+        author: 'DRMacIver',
+        fandom: 'Stargate - All Series, Stargate SG-1'
+      }
+    );
   });
 });
 
