@@ -185,8 +185,8 @@ function chooseColour(fandom) {
   // The saturation/lightness values are chosen to get a dark-ish
   // shade that will look good with white text.
   const saturation = 0.7 + 0.3 * getRand();
-  const lightness1 = 0.15 + 0.2 * getRand();
-  const lightness2 = lightness1 - 0.1;
+  const lightness1 = 0.27 + 0.2 * getRand();
+  const lightness2 = lightness1 - 0.15;
 
   // Convert to rgb.
   let [red1, green1, blue1] = hslToRgb(hue, saturation, lightness1);
