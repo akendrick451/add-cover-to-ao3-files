@@ -10,7 +10,7 @@
  */
 async function findContentOpfPath(zip) {
   const parser = new DOMParser();
-  
+
   // First look for the mandatory file META-INF/container.xml,
   // which contains a pointer to the `content.opf` file.
   //
@@ -20,7 +20,7 @@ async function findContentOpfPath(zip) {
   //    <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   //       <rootfiles>
   //          <rootfile full-path="content.opf" media-type="application/oebps-package+xml"/>
-  //          
+  //
   //       </rootfiles>
   //    </container>
   //
@@ -30,14 +30,14 @@ async function findContentOpfPath(zip) {
     await zip.file('META-INF/container.xml').async('string'),
     "text/xml"
   );
-  
+
   const rootPath =
     containerXmlDoc
       .querySelector('rootfile')
       .getAttribute('full-path');
-  
+
   console.debug(`Detected root path of EPUB file: ${rootPath}`);
-  
+
   return rootPath;
 }
 
@@ -48,10 +48,10 @@ async function findContentOpfPath(zip) {
  * Get key information about this fic from the unpacked EPUB file.
  *
  */
-async function getKeyFicInfo(zip) {    
+async function getKeyFicInfo(zip) {
   // Get the path to `content.opf`.
   const rootPath = await findContentOpfPath(zip);
-  
+
   // Now go ahead and get the contents of `content.opf`.
   //
   // This is the rough strucutre of the contents:
@@ -78,23 +78,23 @@ async function getKeyFicInfo(zip) {
     await zip.file(rootPath).async('string'),
     'text/xml'
   );
-  
+
   // The title of the fic will be in a <dc:title> node, for example:
   //
   //     <dc:title>Operation Cameo</dc:title>
   //
   const namespaceResolver = (prefix) =>
     prefix === 'dc' ? 'http://purl.org/dc/elements/1.1/' : null;
-  
+
   const title = containerOpfXmlDoc.evaluate(
     './/dc:title',
     containerOpfXmlDoc,
     namespaceResolver,
     XPathResult.STRING_TYPE
   ).stringValue;
-  
+
   console.debug(`Detected title of EPUB file: ${title}`);
-  
+
   // The author of the fic will be in a <dc:author> node, for example:
   //
   //     <dc:creator …>alexwlchan</dc:creator>
@@ -105,31 +105,31 @@ async function getKeyFicInfo(zip) {
     namespaceResolver,
     XPathResult.STRING_TYPE
   ).stringValue;
-  
+
   console.debug(`Detected author of EPUB file: ${author}`);
-  
+
   // The href of the first HTML file will be the first <item> node
   // with an HTML media type, for example:
   //
   //    <item
   //      id="html4"
-  //      href="A_Stab_Wars_Story_split_000.xhtml" 
+  //      href="A_Stab_Wars_Story_split_000.xhtml"
   //      media-type="application/xhtml+xml"/>
   //
   const firstHtmlPath =
     containerOpfXmlDoc
       .querySelector('item[media-type="application/xhtml+xml"]')
       .getAttribute("href");
-  
+
   console.debug(`Detected first HTML file in EPUB file: ${firstHtmlPath}`);
-  
+
   // Now go ahead and read that file as HTML.  This contains the metadata
   // we actually want.
   const firstHtmlDoc = parser.parseFromString(
     await zip.file(firstHtmlPath).async('string'),
     'text/html'
   );
-  
+
   // Look for the contents of a <dl> which contains some metadata
   // about this fic.
   //
@@ -151,9 +151,9 @@ async function getKeyFicInfo(zip) {
       .nextSibling
       .nextSibling
       .innerText;
-  
+
   console.debug(`Detected fandom in first HTML file: ${fandom}`);
-  
+
   return { title, author, fandom };
 }
 
@@ -176,22 +176,27 @@ function chooseColour(fandom) {
   // to distinguish e.g. "Star Wars" and "Star Trek", but also means
   // we'll get similar titles for fandoms with the same prefix.
   const fandomSlice = fandom.split(" ").slice(0, 2).join(" ").replace(/:$/, '');
-  
-  const seed = cyrb128(fandomSlice);  
+
+  const seed = cyrb128(fandomSlice);
   const getRand = sfc32(seed[0], seed[1], seed[2], seed[3]);
 
   const hue = getRand();
-  
+
   // The saturation/lightness values are chosen to get a dark-ish
   // shade that will look good with white text.
   const saturation = 0.7 + 0.3 * getRand();
-  const lightness = 0.15 + 0.2 * getRand();
-  
+  const lightness1 = 0.15 + 0.2 * getRand();
+  const lightness2 = lightness1 - 0.1;
+
   // Convert to rgb.
-  let [red, green, blue] = hslToRgb(hue, saturation, lightness);
-  
+  let [red1, green1, blue1] = hslToRgb(hue, saturation, lightness1);
+  let [red2, green2, blue2] = hslToRgb(hue, saturation, lightness2);
+
   // Convert to a hex string.
-  return `#${numToHex(red)}${numToHex(green)}${numToHex(blue)}`;
+  return [
+    `#${numToHex(red1)}${numToHex(green1)}${numToHex(blue1)}`,
+    `#${numToHex(red2)}${numToHex(green2)}${numToHex(blue2)}`,
+  ];
 }
 
 
@@ -199,7 +204,7 @@ function chooseColour(fandom) {
 /**
  * A seeded implementation of a random number generator in JavaScript.
  *
- * Written by Stack Overflow user bryc: 
+ * Written by Stack Overflow user bryc:
  * https://stackoverflow.com/a/47593316/1558022
  */
 function cyrb128(str) {
@@ -297,27 +302,32 @@ function createCoverImage(ficInfo) {
   // for the text to look sharp, but we don't need anything huge.
   const width = 600;
   const height = 900;
-  
+
   const canvas = document.createElement("canvas");
   canvas.setAttribute("width", 600);
   canvas.setAttribute("height", 900);
-  
+
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = chooseColour(ficInfo.fandom);
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  const colors = chooseColour(ficInfo.fandom);
+  gradient.addColorStop(0, colors[0]);
+  gradient.addColorStop(1, colors[1]);
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
+
   // Set text style.  We know white will look okay because we
   // chose a dark background.
-  ctx.fillStyle = 'white';
+  ctx.fillStyle = '#ffffffcc';
   ctx.textAlign = 'center';
-  
+
   // Add the author name.
   ctx.font = '62px Georgia';
-  
+
   const { lines: authorLines, separator } = getAuthorLines({
     ctx, authorName: ficInfo.author, maxWidth: width * 0.75
   });
-  
+
   drawLinesOfText({
     ctx,
     width,
@@ -327,7 +337,7 @@ function createCoverImage(ficInfo) {
     lineStart: height * 0.82,
     lineHeight: 77,
   });
-  
+
   // Add the title.
   //
   // This may be split across multiple lines if it's long; we only
@@ -335,12 +345,13 @@ function createCoverImage(ficInfo) {
   //
   // If there are too many lines, we truncate it and add ellipsis
   // to indicate it's been truncated.
+  ctx.fillStyle = '#ffffff';
   ctx.font = '88px Georgia';
-  
+
   const titleLines = getTitleLines({
     ctx, title: ficInfo.title, maxWidth: width * 0.75,
   });
-  
+
   drawLinesOfText({
     ctx,
     width,
@@ -350,7 +361,7 @@ function createCoverImage(ficInfo) {
     lineStart: height * 0.18,
     lineHeight: 112,
   });
-  
+
   return canvas;
 }
 
@@ -363,16 +374,16 @@ function createCoverImage(ficInfo) {
 function getLinesForWords({ ctx, words, maxWidth, separator }) {
     var lines = [];
     var currentLine = words[0];
-    
+
     // Go through the words one-by-one.  If adding this word causes
     // us to exceeed the width of the current line, create a new line
     // and push the word down.
     for (var i = 1; i < words.length; i++) {
         var thisWord = words[i]
         var candidateLine = currentLine + separator + thisWord;
-      
+
         var width = ctx.measureText(candidateLine).width;
-        
+
         if (width < maxWidth) {
             currentLine = candidateLine;
         } else {
@@ -380,10 +391,10 @@ function getLinesForWords({ ctx, words, maxWidth, separator }) {
             currentLine = thisWord;
         }
     }
-    
+
     // Remember to add a line for anything not already tracked.
     lines.push(currentLine);
-    
+
     return { lines, separator };
 }
 
@@ -396,7 +407,7 @@ function getTitleLines({ ctx, title, maxWidth }) {
   const { lines } = getLinesForWords({
     ctx, words: title.split(" "), maxWidth, separator: " "
   });
-    
+
   return lines;
 }
 
@@ -412,7 +423,7 @@ function getTitleLines({ ctx, title, maxWidth }) {
  * anything beyond that gets truncated.
  */
 function getAuthorLines({ ctx, authorName, maxWidth }) {
-  
+
   // If the author name includes any spaces, assume we have a list
   // of space separated words we can use.
   if (authorName.includes(' ')) {
@@ -420,7 +431,7 @@ function getAuthorLines({ ctx, authorName, maxWidth }) {
       ctx, words: authorName.split(" "), maxWidth, separator: " "
     });
   }
-  
+
   // Another common convention is to use underscores, in which
   // case we can split on that.
   else if (authorName.includes('_')) {
@@ -428,7 +439,7 @@ function getAuthorLines({ ctx, authorName, maxWidth }) {
       ctx, words: authorName.split("_"), maxWidth, separator: "_"
     });
   }
-  
+
   // Another common convention is to use intercaps, e.g. JaneSmith,
   // so we can split on those words if we need to.
   else if (/[A-Z]/.test(authorName)) {
@@ -439,7 +450,7 @@ function getAuthorLines({ ctx, authorName, maxWidth }) {
       separator: ""
     });
   }
-  
+
   // Otherwise, we just break the string into individual characters
   // and fit as many as we can onto each line.
   else {
@@ -461,26 +472,26 @@ function getAuthorLines({ ctx, authorName, maxWidth }) {
  * The text will be drawn in the middle of the page.
  */
 function drawLinesOfText({ ctx, width, lines, separator, maxLines, lineStart, lineHeight }) {
-  
+
   // If there are more lines than we can fit, truncate to that length
   // and add an ellipsis.
   if (lines.length > maxLines) {
     lines = lines.slice(0, maxLines);
     lines[maxLines - 1] += '…';
   }
-  
+
   // Got through and add the lines of text we're drawing.  Depending
   // on the separator, we may need to add a hyphen or similar to
   // indicate line continuation.
   for (lineno = 0; lineno < lines.length; lineno++) {
     const thisLine = lines[lineno];
-    
+
     const displayLine =
       separator === " " ? thisLine
         : separator === "_" ? thisLine + "_"
         : lineno < lines.length - 1 ? thisLine + "-"
         : thisLine;
-    
+
     ctx.fillText(displayLine, width / 2, lineStart + lineno * lineHeight);
   }
 }
@@ -491,7 +502,7 @@ function drawLinesOfText({ ctx, width, lines, separator, maxLines, lineStart, li
  * Shuffle the elements of an array.
  *
  * This code is a Fisher–Yates (aka Knuth) Shuffle, taken from
- * a Stack Overflow community wiki answer: 
+ * a Stack Overflow community wiki answer:
  * https://stackoverflow.com/a/2450976/1558022
  */
 function shuffle(array) {
