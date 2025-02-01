@@ -5,6 +5,8 @@ This makes it easy to find your favourite fic if you’re scrolling a grid view.
 
 <img src="screenshot.png">
 
+To understand the motivation behind this tool and how it works, you can read my [accompanying blog post](https://alexwlchan.net/2025/ao3-epub-covers/).
+
 ## Development
 
 To run tests:
