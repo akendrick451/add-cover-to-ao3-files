@@ -32,13 +32,13 @@ if __name__ == "__main__":
         [
             "ssh",
             "alexwlchan@alexwlchan.net",
-            "mkdir -p repos/alexwlchan.net/_site/tools/add-cover-to-ao3-epubs",
+            "mkdir -p repos/alexwlchan.net/_site/my-tools/add-cover-to-ao3-epubs",
         ]
     )
     subprocess.check_call(
         [
             "scp",
             str(out_dir / "index.html"),
-            "alexwlchan@alexwlchan.net:repos/alexwlchan.net/_site/tools/add-cover-to-ao3-epubs/index.html",
+            "alexwlchan@alexwlchan.net:repos/alexwlchan.net/_site/my-tools/add-cover-to-ao3-epubs/index.html",
         ]
     )
