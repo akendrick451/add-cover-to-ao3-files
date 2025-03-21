@@ -189,6 +189,10 @@
       }
 
       function createNewCoverImage() {
+        console.debug(`start`);
+        console.debug(`start`);
+        console.debug(`start`);
+        console.debug(`startXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`);
         const fileInput = document.querySelector('#epubFileInput');
 
         // Get the epub file from the file input.
@@ -212,6 +216,8 @@
             );
 
             zip.file('media/cover.png', blob, { base64: true });
+            zip.file('epub/media/cover.png', blob, { base64: true });
+            zip.file('EPUB/media/cover.png', blob, { base64: true });
 
             // Now modify the `content.opf` file to insert this image
             // as the cover, and replace the file in the zip.

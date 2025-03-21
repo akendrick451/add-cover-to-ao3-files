@@ -123,12 +123,26 @@ async function getKeyFicInfo(zip) {
 
   console.debug(`Detected first HTML file in EPUB file: ${firstHtmlPath}`);
 
+
+  //console.debug("hardcoding name of index.xhtml");
+  //const firstHtmlPath2 = "xhtml/index.xhtml";
   // Now go ahead and read that file as HTML.  This contains the metadata
   // we actually want.
-  const firstHtmlDoc = parser.parseFromString(
+
+
+ strFileContents =  zip.file(firstHtmlPath);
+ console.debug(`got file contents of  ${firstHtmlPath}`);
+
+const firstHtmlDoc =  parser.parseFromString(strFileContents, "text/xml");
+
+console.debug(`and read the doc in  ${firstHtmlPath}`);
+
+ /* const firstHtmlDoc = parser.parseFromString(
     await zip.file(firstHtmlPath).async('string'),
     'text/html'
   );
+*/
+  console.debug("completed reading that file as text/html");
 
   // Look for the contents of a <dl> which contains some metadata
   // about this fic.
@@ -145,13 +159,16 @@ async function getKeyFicInfo(zip) {
   //          <dt class="calibre3">Fandom:</dt>
   //          <dd class="calibre4"><a href="http://archiveofourown.org/tags/Rogue%20One:%20A%20Star%20Wars%20Story%20(2016)">Rogue One: A Star Wars Story (2016)</a></dd>
   //
-  const fandom =
-    Array.from(firstHtmlDoc.querySelectorAll('dt'))
+
+  console.debug("search for fandom");
+
+  const fandom = "AK HardCoded Research Assignments";
+    /*Array.from(firstHtmlDoc.querySelectorAll('dt'))
       .find(dt => dt.innerText === 'Fandom:' || dt.innerText === 'Fandoms:')
       .nextSibling
       .nextSibling
       .innerText;
-
+*/
   console.debug(`Detected fandom in first HTML file: ${fandom}`);
 
   return { title, author, fandom };
